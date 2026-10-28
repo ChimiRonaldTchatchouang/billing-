@@ -62,7 +62,7 @@ function valeurCellule(v: ExcelJS.CellValue): string {
 
 /** Lit un CSV simple (séparateur ; ou ,) avec guillemets. */
 export function lireCsv(texte: string): string[][] {
-  const contenu = texte.replace(/^﻿/, '');
+  const contenu = texte.replace(/^\uFEFF/, '');
   const premiere = contenu.split(/\r?\n/, 1)[0] ?? '';
   const sep =
     (premiere.match(/;/g)?.length ?? 0) >= (premiere.match(/,/g)?.length ?? 0) ? ';' : ',';
@@ -112,7 +112,7 @@ export async function lireXlsx(contenu: Buffer): Promise<string[][]> {
 }
 
 const entier = (s: string | undefined) => {
-  const v = (s ?? '').replace(/[\s  ]/g, '');
+  const v = (s ?? '').replace(/[\s\u00a0\u202f]/g, '');
   return /^\d+$/.test(v) ? Number(v) : null;
 };
 

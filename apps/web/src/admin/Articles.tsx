@@ -269,7 +269,7 @@ function ImportArticles({ onFermer }: { onFermer: () => void }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['articles'] }),
   });
   const erreurApi = envoyer.error instanceof ErreurApi ? envoyer.error : null;
-  const modele = URL.createObjectURL(new Blob(['﻿' + MODELE_CSV], { type: 'text/csv' }));
+  const modele = URL.createObjectURL(new Blob(['\uFEFF' + MODELE_CSV], { type: 'text/csv' }));
 
   return (
     <Modale titre="Importer des articles" onFermer={onFermer}>
