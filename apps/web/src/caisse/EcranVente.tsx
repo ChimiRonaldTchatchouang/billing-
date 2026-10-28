@@ -99,28 +99,41 @@ export function EcranVente({
   }, [code]);
 
   const ajouterProduit = (p: ProduitLocal) => {
-    setCode('');
-    setResultats([]);
     setMessage(null);
     if (p.unite === 'KG') setSaisie({ type: 'poids', produit: p });
     else majPanier((x) => ajouter(x, p));
   };
 
-  const valider = async (valeur: string) => {
-    const saisi = valeur.trim();
-    if (!saisi) return;
+  const choisir = (p: ProduitLocal) => {
+    setCode('');
+    setResultats([]);
+    ajouterProduit(p);
+  };
+
+  const valider = async (saisi: string) => {
     const p = await trouverParCode(saisi);
     if (p) return ajouterProduit(p);
-    if (resultats.length === 1) return ajouterProduit(resultats[0]!);
-    if (resultats.length === 0) {
-      setMessage(`Article introuvable : ${saisi}`);
-      setCode('');
+    // Pas un code-barres connu : recherche par nom, ou message si c'était un code.
+    const trouves = /[a-zA-Zà-ü]/.test(saisi) ? await rechercherLocal(saisi) : [];
+    if (trouves.length === 1) return ajouterProduit(trouves[0]!);
+    if (trouves.length > 1) {
+      setCode(saisi);
+      setResultats(trouves);
+      return;
     }
+    setMessage(`Article introuvable : ${saisi}`);
   };
 
   const touche = (e: KeyboardEvent<HTMLInputElement>) => {
-    // La valeur est lue dans le champ : une rafale de la douchette ne dépend pas du rendu.
-    if (e.key === 'Enter') void valider(e.currentTarget.value);
+    if (e.key === 'Enter') {
+      // Le champ est vidé tout de suite : la douchette peut déjà envoyer le code suivant
+      // pendant la recherche de celui-ci.
+      const saisi = e.currentTarget.value.trim();
+      e.currentTarget.value = '';
+      setCode('');
+      setResultats([]);
+      if (saisi) void valider(saisi);
+    }
     if (e.key === 'F2' && t) setPaiement(true);
   };
 
@@ -220,7 +233,7 @@ export function EcranVente({
                   <button
                     type="button"
                     className="flex w-full justify-between px-3 py-2 text-left hover:bg-green-50"
-                    onClick={() => ajouterProduit(p)}
+                    onClick={() => choisir(p)}
                   >
                     <span>{p.nom}</span>
                     <span className="text-gray-600">
