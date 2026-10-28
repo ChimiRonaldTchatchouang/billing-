@@ -3,3 +3,5 @@ dist
 coverage
 dev-dist
 apps/api/prisma/migrations
+apps/desktop/app
+apps/desktop/release

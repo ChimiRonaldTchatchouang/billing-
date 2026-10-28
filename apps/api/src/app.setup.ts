@@ -10,7 +10,8 @@ export function setupApp(app: INestApplication, env: Pick<Env, 'CORS_ORIGINS'>):
   // Un lot de ventes de caisse peut dépasser la limite par défaut de 100 ko.
   (app as NestExpressApplication).useBodyParser('json', { limit: '5mb' });
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
-  app.use(helmet());
+  // Pas de « upgrade-insecure-requests » : la version de bureau sert l'application sur http://localhost.
+  app.use(helmet({ contentSecurityPolicy: { directives: { upgradeInsecureRequests: null } } }));
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
   app.useGlobalFilters(new HttpExceptionFilter());
 

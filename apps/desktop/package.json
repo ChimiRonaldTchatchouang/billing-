@@ -1,0 +1,24 @@
+{
+  "name": "@caisse/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Caisse & facturation — version de bureau autonome (démonstration)",
+  "author": "Nextiaa",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "paquet": "node scripts/preparer.mjs && electron-builder --win --x64 --publish never"
+  },
+  "dependencies": {
+    "embedded-postgres": "16.14.0-beta.17",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.11.10",
+    "electron": "^37.4.0",
+    "electron-builder": "^26.18.1"
+  }
+}
