@@ -1,0 +1,44 @@
+# Blueprint Render : services API de recette et de production.
+# Le déploiement automatique est désactivé : seul le deploy hook appelé par la CI déploie,
+# après les migrations. Les secrets se saisissent dans le tableau de bord Render.
+services:
+  - type: web
+    name: caisse-api-recette
+    runtime: node
+    plan: free
+    region: frankfurt
+    autoDeploy: false
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @caisse/shared build && pnpm --filter @caisse/api build
+    startCommand: pnpm --filter @caisse/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+  - type: web
+    name: caisse-api-production
+    runtime: node
+    plan: starter
+    region: frankfurt
+    autoDeploy: false
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @caisse/shared build && pnpm --filter @caisse/api build
+    startCommand: pnpm --filter @caisse/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
