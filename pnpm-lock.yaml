@@ -119,13 +119,6 @@ importers:
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.5)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(terser@5.51.2)
 
   apps/desktop:
-    dependencies:
-      embedded-postgres:
-        specifier: 16.14.0-beta.17
-        version: 16.14.0-beta.17
-      pg:
-        specifier: ^8.13.1
-        version: 8.23.1
     devDependencies:
       '@types/node':
         specifier: ^22.20.5
@@ -139,6 +132,12 @@ importers:
       electron-builder:
         specifier: ^26.18.1
         version: 26.18.1(electron-builder-squirrel-windows@26.18.1)
+      embedded-postgres:
+        specifier: 16.14.0-beta.17
+        version: 16.14.0-beta.17
+      pg:
+        specifier: ^8.13.1
+        version: 8.23.1
 
   apps/web:
     dependencies:

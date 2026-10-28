@@ -10,7 +10,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/dev-dist/**',
       '**/node_modules/**',
-      'apps/desktop/app/**',
+      'apps/desktop/serveur/**',
+      'apps/desktop/coquille/**',
       'apps/desktop/release/**',
     ],
   },
@@ -23,6 +24,12 @@ export default tseslint.config(
       'no-implied-eval': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
+  },
+  {
+    // Crochets electron-builder : modules CommonJS.
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     files: ['apps/web/**/*.{ts,tsx}'],

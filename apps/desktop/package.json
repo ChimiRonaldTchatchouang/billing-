@@ -11,14 +11,16 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "paquet": "node scripts/preparer.mjs && electron-builder --win --x64 --publish never"
   },
-  "dependencies": {
-    "embedded-postgres": "16.14.0-beta.17",
-    "pg": "^8.13.1"
-  },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/pg": "^8.11.10",
     "electron": "^37.4.0",
-    "electron-builder": "^26.18.1"
+    "electron-builder": "^26.18.1",
+    "embedded-postgres": "16.14.0-beta.17",
+    "pg": "^8.13.1"
+  },
+  "dependancesServeur": {
+    "embedded-postgres": "16.14.0-beta.17",
+    "pg": "^8.13.1"
   }
 }

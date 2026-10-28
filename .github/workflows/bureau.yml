@@ -20,7 +20,7 @@ jobs:
       - name: Fabriquer l'installateur
         run: pnpm --filter @caisse/desktop paquet
       - name: Essai de démarrage sur Windows (base intégrée, migrations, démo, API)
-        run: node apps/desktop/scripts/essai-demarrage.mjs apps/desktop/release/win-unpacked/resources/app ${{ runner.temp }}/caisse-essai
+        run: node apps/desktop/scripts/essai-demarrage.mjs apps/desktop/release/win-unpacked/resources/serveur ${{ runner.temp }}/caisse-essai
       - uses: actions/upload-artifact@v4
         with:
           name: installable-windows

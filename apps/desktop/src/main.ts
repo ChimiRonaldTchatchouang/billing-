@@ -1,11 +1,12 @@
 /** Version de bureau : une fenêtre sur l'application, avec sa propre API et sa propre base. */
 import { app, BrowserWindow, dialog, Menu, shell } from 'electron';
 import { appendFileSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { demarrer, type Serveur } from './serveur.js';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import type { Serveur } from './serveur.js';
 
-const ici = dirname(fileURLToPath(import.meta.url));
+/** Partie serveur (API, web, base) : copiée telle quelle dans les ressources de l'application. */
+const application = process.env.CAISSE_SERVEUR ?? join(process.resourcesPath, 'serveur');
 let serveur: Serveur | null = null;
 let fenetre: BrowserWindow | null = null;
 
@@ -50,10 +51,10 @@ if (!app.requestSingleInstanceLock()) {
     await fenetre.loadURL(ATTENTE);
 
     try {
-      serveur = await demarrer(
-        { donnees, application: join(ici, '..'), node: process.execPath },
-        journal,
-      );
+      const { demarrer } = (await import(
+        pathToFileURL(join(application, 'dist', 'serveur.js')).href
+      )) as typeof import('./serveur.js');
+      serveur = await demarrer({ donnees, application, node: process.execPath }, journal);
     } catch (e) {
       journal(`Échec du démarrage : ${e instanceof Error ? e.stack : String(e)}`);
       dialog.showErrorBox(

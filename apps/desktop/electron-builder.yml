@@ -2,13 +2,16 @@ appId: cm.nextiaa.caisse
 productName: Caisse et facturation
 copyright: Nextiaa
 directories:
-  app: app
+  app: coquille
   output: release
   buildResources: build
 # Les binaires (PostgreSQL, moteur Prisma) doivent rester de vrais fichiers.
 asar: false
 npmRebuild: false
 electronVersion: 37.10.3
+# serveur/ (API, web, base et leurs dépendances Windows) est copié tel quel par ce crochet :
+# electron-builder retirerait les node_modules.
+afterPack: scripts/apres-empaquetage.cjs
 files:
   - '**/*'
   - '!**/*.map'

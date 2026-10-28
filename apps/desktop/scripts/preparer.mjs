@@ -1,4 +1,7 @@
-// Prépare le dossier de l'application de bureau (app/) pour electron-builder :
+// Prépare les deux dossiers de l'application de bureau pour electron-builder :
+// - coquille/ : la fenêtre Electron, sans dépendance ;
+// - serveur/ : copié tel quel dans les ressources (electron-builder ne recalcule pas ses
+//   dépendances, qui doivent être celles de Windows et non de la machine qui fabrique) :
 // API compilée et ses dépendances pour Windows x64, application web compilée, migrations.
 import { execSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,7 +12,8 @@ import { extraire } from './dezip.mjs';
 const ici = dirname(fileURLToPath(import.meta.url));
 const desktop = join(ici, '..');
 const racine = join(desktop, '../..');
-const app = join(desktop, 'app');
+const app = join(desktop, 'serveur');
+const coquille = join(desktop, 'coquille');
 const cible = process.env.CIBLE_OS ?? 'win32';
 // Runtime Visual C++ redistribuable (paquet PyPI msvc-runtime, DLL Microsoft redistribuables).
 const MSVC_RUNTIME =
@@ -24,7 +28,7 @@ sh('pnpm --filter @caisse/api build');
 sh('pnpm --filter @caisse/web exec vite build', racine, { VITE_API_URL: '' });
 sh('pnpm --filter @caisse/desktop build');
 
-console.log('→ Dossier app/');
+console.log('→ Dossier serveur/');
 rmSync(app, { recursive: true, force: true });
 mkdirSync(join(app, 'api'), { recursive: true });
 cpSync(join(racine, 'apps/api/dist'), join(app, 'api/dist'), { recursive: true });
@@ -67,7 +71,7 @@ const apiPkg = JSON.parse(readFileSync(join(racine, 'apps/api/package.json'), 'u
 const desktopPkg = JSON.parse(readFileSync(join(desktop, 'package.json'), 'utf8'));
 const dependances = {
   ...apiPkg.dependencies,
-  ...desktopPkg.dependencies,
+  ...desktopPkg.dependancesServeur,
   '@caisse/shared': 'file:./shared',
 };
 writeFileSync(
@@ -102,5 +106,25 @@ if (cible === 'win32') {
 sh(
   `npx --yes prisma@${apiPkg.devDependencies.prisma.replace(/^[~^]/, '')} generate --schema api/prisma/schema.prisma`,
   app,
+);
+console.log('→ Dossier coquille/');
+rmSync(coquille, { recursive: true, force: true });
+mkdirSync(join(coquille, 'dist'), { recursive: true });
+cpSync(join(desktop, 'dist/main.js'), join(coquille, 'dist/main.js'));
+writeFileSync(
+  join(coquille, 'package.json'),
+  JSON.stringify(
+    {
+      name: 'caisse-supermarche',
+      productName: 'Caisse et facturation',
+      version: desktopPkg.version,
+      description: desktopPkg.description,
+      author: desktopPkg.author,
+      type: 'module',
+      main: 'dist/main.js',
+    },
+    null,
+    2,
+  ),
 );
 console.log('→ Prêt');
