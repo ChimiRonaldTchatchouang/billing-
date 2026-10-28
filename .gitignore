@@ -15,3 +15,7 @@ dev-dist/
 
 test-results/
 playwright-report/
+apps/desktop/serveur/
+apps/desktop/coquille/
+apps/desktop/release/
+apps/desktop/dist/

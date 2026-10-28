@@ -1,0 +1,30 @@
+name: Installable Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/installable-bureau]
+    tags: ['bureau-v*']
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Fabriquer l'installateur
+        run: pnpm --filter @caisse/desktop paquet
+      - name: Essai de démarrage sur Windows (base intégrée, migrations, démo, API)
+        run: node apps/desktop/scripts/essai-demarrage.mjs apps/desktop/release/win-unpacked/resources/serveur ${{ runner.temp }}/caisse-essai
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installable-windows
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.zip
+          retention-days: 30

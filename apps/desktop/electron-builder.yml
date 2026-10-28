@@ -1,0 +1,39 @@
+appId: cm.nextiaa.caisse
+productName: Caisse et facturation
+copyright: Nextiaa
+directories:
+  app: coquille
+  output: release
+  buildResources: build
+# Les binaires (PostgreSQL, moteur Prisma) doivent rester de vrais fichiers.
+asar: false
+npmRebuild: false
+electronVersion: 37.10.3
+# serveur/ (API, web, base et leurs dépendances Windows) est copié tel quel par ce crochet :
+# electron-builder retirerait les node_modules.
+afterPack: scripts/apres-empaquetage.cjs
+files:
+  - '**/*'
+  - '!**/*.map'
+  - '!**/*.d.ts'
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  signAndEditExecutable: false
+  artifactName: Caisse-et-facturation-${version}-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Caisse et facturation
+  artifactName: Caisse-et-facturation-Installation-${version}.${ext}
+linux:
+  target: [AppImage]
+  category: Office
+  artifactName: Caisse-et-facturation-${version}.${ext}
+publish: null
