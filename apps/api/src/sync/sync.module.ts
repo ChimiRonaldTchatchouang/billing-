@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
+import { CatalogueModule } from '../catalogue/catalogue.module.js';
 import { SyncController } from './sync.controller.js';
 
-@Module({ controllers: [SyncController] })
+@Module({ imports: [CatalogueModule], controllers: [SyncController] })
 export class SyncModule {}

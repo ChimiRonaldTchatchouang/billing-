@@ -4,6 +4,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CatalogueModule } from './catalogue/catalogue.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { HealthModule } from './health/health.module.js';
 import { OrganisationModule } from './organisation/organisation.module.js';
@@ -21,6 +22,7 @@ import { UsersModule } from './users/users.module.js';
     HealthModule,
     OrganisationModule,
     UsersModule,
+    CatalogueModule,
     SyncModule,
   ],
   // Ordre des gardes : limiteur, puis authentification et rôles.
