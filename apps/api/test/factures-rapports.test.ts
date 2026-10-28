@@ -158,7 +158,10 @@ describe.skipIf(!dbUrl)('factures, paiements, rapports, mot de passe', () => {
       const chemin = new URL(lien.body.url);
       const ok = await http().get(chemin.pathname + chemin.search);
       expect(ok.status).toBe(200);
-      const altere = await http().get(chemin.pathname + chemin.search.replace(/sig=./, 'sig=X'));
+      const altere = await http().get(
+        chemin.pathname +
+          chemin.search.replace(/sig=(.)/, (_, c: string) => `sig=${c === 'A' ? 'B' : 'A'}`),
+      );
       expect(altere.status).toBe(403);
       expect(altere.body.message).toBe(
         'Ce lien n’est plus valable. Demandez un nouveau lien au magasin.',
