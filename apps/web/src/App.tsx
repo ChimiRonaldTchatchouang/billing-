@@ -1,6 +1,6 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
-import { Admin } from './pages/Admin';
-import { Caisse } from './pages/Caisse';
+import { Admin } from './admin/Admin';
+import { Caisse } from './caisse/Caisse';
 
 export function App() {
   return (

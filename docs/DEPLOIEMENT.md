@@ -37,9 +37,25 @@ Deux environnements GitHub (Settings → Environments) : `recette` et `productio
 ## Render
 
 1. New → Blueprint → choisir ce dépôt : `render.yaml` crée les deux services.
-2. Saisir `DATABASE_URL`, `DIRECT_URL` et `CORS_ORIGINS` dans chaque service.
+2. Saisir dans chaque service : `DATABASE_URL`, `DIRECT_URL`, `CORS_ORIGINS` (adresse Vercel),
+   `PUBLIC_API_URL` (adresse Render du service), `PUBLIC_WEB_URL` (adresse Vercel), `RESEND_API_KEY`,
+   `MAIL_FROM`. `JWT_ACCESS_SECRET` et `PDF_LINK_SECRET` sont générés par Render.
 3. Settings → Deploy Hook : copier l'URL dans le secret `RENDER_DEPLOY_HOOK` de l'environnement GitHub.
 4. La production passe en offre payante (`starter`) dès le pilote.
+
+## Premier démarrage d'une base
+
+Après les migrations, créer l'organisation et le premier directeur (une seule fois), depuis le Shell
+Render du service :
+
+```bash
+SEED_ORG_NAME="Nom du supermarché" SEED_ORG_NIU=... SEED_ORG_RCCM=... \
+SEED_ADMIN_NAME="Nom du directeur" SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... \
+pnpm --filter @caisse/api db:seed
+```
+
+Ajouter `SEED_DEMO=1` en recette pour un magasin, une caisse, un gérant (PIN 9999), une caissière
+(PIN 1234) et quelques articles.
 
 ## Vercel
 
