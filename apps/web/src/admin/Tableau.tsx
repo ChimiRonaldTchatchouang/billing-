@@ -91,7 +91,13 @@ export function TableauDeBord() {
                     width={40}
                   />
                   <Tooltip formatter={(v: number) => formaterFcfa(v)} />
-                  <Bar dataKey="net" name="Ventes nettes" fill="#15803d" radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="net"
+                    name="Ventes nettes"
+                    fill="#15803d"
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={false}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

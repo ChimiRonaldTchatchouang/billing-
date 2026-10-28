@@ -42,16 +42,27 @@ test('parcours caisse : enregistrement du poste, PIN, scan, encaissement espèce
   await scan.press('Enter');
   await expect(caisse.getByText('Riz parfumé 5 kg')).toBeVisible();
   expect(Date.now() - debut).toBeLessThan(1000);
-  await scan.fill('6001234000028');
-  await scan.press('Enter');
-  await scan.fill('6001234000028');
-  await scan.press('Enter');
-  await expect(caisse.getByText('9 500 FCFA').first()).toBeVisible();
+  await scan.press('Backspace');
+  // Rafale comme une douchette : plusieurs codes sans attendre que l'écran soit redessiné.
+  await caisse.evaluate(() => {
+    const champ = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Code-barres ou nom de l’article"]',
+    )!;
+    const valeur = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+    for (const c of ['6001234000028', '6001234000028', '6001234000059']) {
+      valeur.call(champ, c);
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    }
+  });
+  await expect(caisse.getByText('Eau minérale 1,5 L')).toBeVisible();
+  await expect(caisse.getByRole('button', { name: '2', exact: true })).toBeVisible();
+  await expect(caisse.getByText('9 900 FCFA').first()).toBeVisible();
 
   // 5. Encaissement en espèces avec rendu monnaie.
   await caisse.getByRole('button', { name: 'Encaisser (F2)' }).click();
   await caisse.getByLabel(/Espèces reçues/).fill('10000');
-  await expect(caisse.getByText('Rendu :')).toContainText('500 FCFA');
+  await expect(caisse.getByText('Rendu :')).toContainText('100 FCFA');
   await caisse.evaluate(() => (window.print = () => undefined));
   await caisse.getByRole('button', { name: 'Valider et imprimer' }).click();
   await expect(caisse.getByText('Dernier ticket')).toContainText('M01-C01-000001');
