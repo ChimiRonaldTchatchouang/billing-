@@ -16,6 +16,7 @@ import {
   creationMagasinSchema,
   modificationCaisseSchema,
   modificationMagasinSchema,
+  organisationSchema,
 } from '@caisse/shared';
 import type { z } from 'zod';
 import { type Acteur, GERANT_PLUS, TOUS } from '../auth/acteur.js';
@@ -31,6 +32,23 @@ const uuid = new ParseUUIDPipe({ version: '4' });
 @Controller()
 export class OrganisationController {
   constructor(private readonly service: OrganisationService) {}
+
+  @Get('organization')
+  @Autoriser(...TOUS)
+  organisation(@ActeurCourant() a: Acteur) {
+    return this.service.organisation(a);
+  }
+
+  @Patch('organization')
+  @Autoriser('DIRECTEUR')
+  @ApiOperation({ summary: 'Raison sociale, NIU, RCCM, adresse (mentions des factures)' })
+  @ApiZodBody(organisationSchema)
+  modifierOrganisation(
+    @ActeurCourant() a: Acteur,
+    @Body(new ZodPipe(organisationSchema)) b: z.infer<typeof organisationSchema>,
+  ) {
+    return this.service.modifierOrganisation(a, b);
+  }
 
   @Get('stores')
   @Autoriser(...TOUS)

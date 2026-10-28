@@ -48,7 +48,7 @@ garantit qu'une vente synchronisée deux fois n'est enregistrée qu'une fois.
 | Hors ligne     | vite-plugin-pwa (Workbox) + Dexie (IndexedDB)                     |
 | Données client | TanStack Query                                                    |
 | Factures PDF   | pdfmake côté API                                                  |
-| E-mails        | Resend + React Email                                              |
+| E-mails        | Resend (API HTTP), gabarits HTML (décision 0005)                  |
 | Tests          | Vitest (unitaires), Supertest (API), Playwright (parcours caisse) |
 | Erreurs        | Sentry (offre gratuite)                                           |
 
@@ -150,8 +150,8 @@ Le filtrage par magasin est appliqué côté serveur selon le rôle, jamais déd
 
 ## 9. Intégrations
 
-- **E-mails (Resend, API HTTP)** : deux modèles React Email — facture avec PDF joint, réinitialisation
-  du mot de passe. Envoi direct, statut enregistré, bouton « Renvoyer » en cas d'échec. Les alertes de
+- **E-mails (Resend, API HTTP)** : deux modèles (gabarits HTML, décision 0005) — facture avec PDF
+  joint, réinitialisation du mot de passe. Envoi direct, statut enregistré, bouton « Renvoyer » en cas d'échec. Les alertes de
   rupture et le résumé de clôture sont affichés dans le back-office (pas d'e-mail au MVP).
 - **Factures PDF** : générées à la demande depuis la base, sans stockage de fichier.
 - **WhatsApp** : lien `wa.me` prérempli contenant un lien signé vers le PDF, valable 7 jours.

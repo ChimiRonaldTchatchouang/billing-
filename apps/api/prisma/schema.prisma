@@ -48,21 +48,29 @@ enum PaymentStatus {
   ECART
 }
 
+enum InvoiceKind {
+  FACTURE
+  AVOIR
+}
+
 enum CashSessionStatus {
   OUVERTE
   FERMEE
 }
 
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  niu       String?
-  rccm      String?
-  address   String?
-  phone     String?
-  logoUrl   String?  @map("logo_url")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  niu            String?
+  rccm           String?
+  address        String?
+  phone          String?
+  logoUrl        String?  @map("logo_url")
+  /// Dernier numéro attribué : factures et avoirs ont chacun leur série continue, sans trou.
+  lastInvoiceSeq Int      @default(0) @map("last_invoice_seq")
+  lastCreditSeq  Int      @default(0) @map("last_credit_seq")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   stores     Store[]
   registers  Register[]
@@ -327,16 +335,17 @@ model SaleLine {
 }
 
 model Payment {
-  id             String        @id @default(uuid()) @db.Uuid
-  organizationId String        @map("organization_id") @db.Uuid
-  saleId         String        @map("sale_id") @db.Uuid
-  mode           PaymentMode
-  amount         Int
-  customerPhone  String?       @map("customer_phone")
-  externalRef    String?       @map("external_ref")
-  status         PaymentStatus
-  reconciledBy   String?       @map("reconciled_by") @db.Uuid
-  reconciledAt   DateTime?     @map("reconciled_at") @db.Timestamptz(3)
+  id                 String        @id @default(uuid()) @db.Uuid
+  organizationId     String        @map("organization_id") @db.Uuid
+  saleId             String        @map("sale_id") @db.Uuid
+  mode               PaymentMode
+  amount             Int
+  customerPhone      String?       @map("customer_phone")
+  externalRef        String?       @map("external_ref")
+  status             PaymentStatus
+  reconciledBy       String?       @map("reconciled_by") @db.Uuid
+  reconciledAt       DateTime?     @map("reconciled_at") @db.Timestamptz(3)
+  reconciliationNote String?       @map("reconciliation_note")
 
   sale Sale @relation(fields: [saleId], references: [id])
 
@@ -345,16 +354,19 @@ model Payment {
 }
 
 model Invoice {
-  id              String    @id @default(uuid()) @db.Uuid
-  organizationId  String    @map("organization_id") @db.Uuid
-  saleId          String    @unique @map("sale_id") @db.Uuid
-  number          String
-  customerName    String    @map("customer_name")
-  customerNiu     String?   @map("customer_niu")
-  customerAddress String?   @map("customer_address")
-  customerEmail   String?   @map("customer_email")
-  sentAt          DateTime? @map("sent_at") @db.Timestamptz(3)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  id                String      @id @default(uuid()) @db.Uuid
+  organizationId    String      @map("organization_id") @db.Uuid
+  saleId            String      @unique @map("sale_id") @db.Uuid
+  kind              InvoiceKind @default(FACTURE)
+  /// Pour un avoir : la facture qu'il corrige.
+  originalInvoiceId String?     @map("original_invoice_id") @db.Uuid
+  number            String
+  customerName      String      @map("customer_name")
+  customerNiu       String?     @map("customer_niu")
+  customerAddress   String?     @map("customer_address")
+  customerEmail     String?     @map("customer_email")
+  sentAt            DateTime?   @map("sent_at") @db.Timestamptz(3)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
 
   sale Sale @relation(fields: [saleId], references: [id])
 

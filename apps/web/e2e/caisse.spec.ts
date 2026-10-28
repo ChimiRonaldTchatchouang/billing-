@@ -42,16 +42,34 @@ test('parcours caisse : enregistrement du poste, PIN, scan, encaissement espèce
   await scan.press('Enter');
   await expect(caisse.getByText('Riz parfumé 5 kg')).toBeVisible();
   expect(Date.now() - debut).toBeLessThan(1000);
-  await scan.fill('6001234000028');
-  await scan.press('Enter');
-  await scan.fill('6001234000028');
-  await scan.press('Enter');
-  await expect(caisse.getByText('9 500 FCFA').first()).toBeVisible();
+  await scan.press('Backspace');
+  // Rafale comme une douchette : plusieurs codes sans attendre que l'écran soit redessiné.
+  await caisse.evaluate(() => {
+    const champ = document.querySelector<HTMLInputElement>(
+      'input[aria-label="Code-barres ou nom de l’article"]',
+    )!;
+    const valeur = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+    for (const c of ['6001234000028', '6001234000028', '6001234000042', '6001234000059']) {
+      valeur.call(champ, c);
+      champ.dispatchEvent(new Event('input', { bubbles: true }));
+      champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    }
+  });
+  await expect(caisse.getByText('Eau minérale 1,5 L')).toBeVisible();
+  await expect(caisse.getByText('Lait concentré sucré 397 g')).toBeVisible();
+  await expect(caisse.getByRole('button', { name: '2', exact: true })).toBeVisible();
+  await expect(caisse.getByText('10 650 FCFA').first()).toBeVisible();
+  // Puis à la vitesse d'une saisie au clavier.
+  for (const c of ['6001234000042', '6001234000059']) {
+    await scan.fill(c);
+    await scan.press('Enter');
+  }
+  await expect(caisse.getByText('11 800 FCFA').first()).toBeVisible();
 
   // 5. Encaissement en espèces avec rendu monnaie.
   await caisse.getByRole('button', { name: 'Encaisser (F2)' }).click();
-  await caisse.getByLabel(/Espèces reçues/).fill('10000');
-  await expect(caisse.getByText('Rendu :')).toContainText('500 FCFA');
+  await caisse.getByLabel(/Espèces reçues/).fill('15000');
+  await expect(caisse.getByText('Rendu :')).toContainText('3 200 FCFA');
   await caisse.evaluate(() => (window.print = () => undefined));
   await caisse.getByRole('button', { name: 'Valider et imprimer' }).click();
   await expect(caisse.getByText('Dernier ticket')).toContainText('M01-C01-000001');
@@ -145,4 +163,56 @@ test('retour sur ticket puis clôture de caisse avec écart', async ({ page, con
   await page.getByRole('button', { name: 'Fermer' }).click();
   await page.getByRole('link', { name: 'Sessions de caisse' }).click();
   await expect(page.getByRole('cell', { name: '-100 FCFA' })).toBeVisible();
+});
+
+test('back-office : tableau de bord, facture d’un ticket, rapprochement Mobile Money', async ({
+  page,
+  context,
+}) => {
+  // Une vente payée en Orange Money depuis un nouveau poste.
+  await connexionBackOffice(page, 'gerant@demo.cm', 'gerant-demo-2026');
+  await page.getByRole('link', { name: 'Caisses' }).click();
+  await page.getByRole('button', { name: 'Code d’enregistrement' }).click();
+  const code = (await page.locator('p.font-mono').textContent())!.trim();
+  await page.getByRole('button', { name: 'Fermer' }).click();
+  const caisse = await context.newPage();
+  await caisse.goto('/caisse');
+  await caisse.getByLabel('Code d’enregistrement').fill(code);
+  await caisse.getByRole('button', { name: 'Enregistrer le poste' }).click();
+  await caisse.getByRole('button', { name: /Caissière Démo/ }).click();
+  await taperPin(caisse, '1234');
+  await caisse.getByLabel('Fond de caisse (FCFA)').fill('0');
+  await caisse.getByRole('button', { name: 'Ouvrir la caisse' }).click();
+  await caisse.evaluate(() => (window.print = () => undefined));
+  const scan = caisse.getByLabel('Code-barres ou nom de l’article');
+  await scan.fill('6001234000011');
+  await scan.press('Enter');
+  await caisse.getByRole('button', { name: 'Encaisser (F2)' }).click();
+  await caisse.getByLabel(/Paiement Mobile Money/).check();
+  await caisse.getByLabel('Numéro du client').fill('690112233');
+  await caisse.getByLabel('Référence de la transaction').fill('MP261028.E2E.0001');
+  await caisse.getByRole('button', { name: 'Valider et imprimer' }).click();
+  await expect(caisse.getByRole('status')).toHaveText('En ligne', { timeout: 20_000 });
+
+  // Tableau de bord.
+  await page.getByRole('link', { name: 'Tableau de bord' }).click();
+  await expect(page.getByText('Mobile Money à rapprocher').first()).toBeVisible();
+
+  // Facture depuis le détail de la vente.
+  await page.getByRole('link', { name: 'Ventes' }).click();
+  await page
+    .getByRole('row', { name: /Orange Money/ })
+    .getByRole('button', { name: 'Détail' })
+    .click();
+  await page.getByLabel('Raison sociale').fill('Boulangerie du Port SARL');
+  await page.getByLabel('NIU du client').fill('P012345678901Q');
+  await page.getByRole('button', { name: 'Émettre la facture' }).click();
+  await expect(page.getByText(/Facture FA-\d{6}/)).toBeVisible();
+  await page.getByRole('button', { name: 'Fermer' }).click();
+
+  // Rapprochement.
+  await page.getByRole('link', { name: 'Mobile Money' }).click();
+  await page.getByLabel('Choisir MP261028.E2E.0001').check();
+  await page.getByRole('button', { name: 'Rapprochés' }).click();
+  await expect(page.getByText('MP261028.E2E.0001')).toHaveCount(0);
 });

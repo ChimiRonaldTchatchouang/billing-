@@ -13,11 +13,13 @@ export const LIENS: Lien[] = [
   { vers: '/admin/ventes', libelle: 'Ventes', roles: ['DIRECTEUR', 'GERANT'] },
   { vers: '/admin/paiements', libelle: 'Mobile Money', roles: ['DIRECTEUR', 'GERANT'] },
   { vers: '/admin/sessions', libelle: 'Sessions de caisse', roles: ['DIRECTEUR', 'GERANT'] },
+  { vers: '/admin/rapports', libelle: 'Rapports', roles: ['DIRECTEUR', 'GERANT'] },
   { vers: '/admin/articles', libelle: 'Articles', roles: ['DIRECTEUR', 'GERANT', 'CAISSIER'] },
   { vers: '/admin/stock', libelle: 'Stock', roles: ['DIRECTEUR', 'GERANT'] },
   { vers: '/admin/caisses', libelle: 'Caisses', roles: ['DIRECTEUR', 'GERANT'] },
   { vers: '/admin/magasins', libelle: 'Magasins', roles: ['DIRECTEUR'] },
   { vers: '/admin/utilisateurs', libelle: 'Utilisateurs', roles: ['DIRECTEUR'] },
+  { vers: '/admin/entreprise', libelle: 'Entreprise', roles: ['DIRECTEUR'] },
 ];
 
 export function Layout() {

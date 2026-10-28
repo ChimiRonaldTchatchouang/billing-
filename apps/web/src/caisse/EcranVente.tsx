@@ -68,13 +68,19 @@ export function EcranVente({
   const t = totaux(panier);
 
   // Le ticket en cours survit à un rechargement de la page.
+  const charge = useRef(false);
   useEffect(() => {
-    void lireMeta<Panier>('panier').then((p) => p && setPanierEtat(p));
+    void lireMeta<Panier>('panier').then((p) => {
+      if (p) setPanierEtat(p);
+      charge.current = true;
+    });
   }, []);
-  const setPanier = (p: Panier) => {
-    setPanierEtat(p);
-    void ecrireMeta('panier', p);
-  };
+  useEffect(() => {
+    if (charge.current) void ecrireMeta('panier', panier);
+  }, [panier]);
+  // Toujours à partir de l'état le plus récent : la douchette peut envoyer plusieurs codes
+  // avant que l'écran ait été redessiné.
+  const majPanier = (f: (p: Panier) => Panier) => setPanierEtat(f);
 
   const refocus = () => requestAnimationFrame(() => champ.current?.focus());
   const modaleOuverte = demande || saisie || paiement;
@@ -93,27 +99,41 @@ export function EcranVente({
   }, [code]);
 
   const ajouterProduit = (p: ProduitLocal) => {
-    setCode('');
-    setResultats([]);
     setMessage(null);
     if (p.unite === 'KG') setSaisie({ type: 'poids', produit: p });
-    else setPanier(ajouter(panier, p));
+    else majPanier((x) => ajouter(x, p));
   };
 
-  const valider = async () => {
-    const saisi = code.trim();
-    if (!saisi) return;
+  const choisir = (p: ProduitLocal) => {
+    setCode('');
+    setResultats([]);
+    ajouterProduit(p);
+  };
+
+  const valider = async (saisi: string) => {
     const p = await trouverParCode(saisi);
     if (p) return ajouterProduit(p);
-    if (resultats.length === 1) return ajouterProduit(resultats[0]!);
-    if (resultats.length === 0) {
-      setMessage(`Article introuvable : ${saisi}`);
-      setCode('');
+    // Pas un code-barres connu : recherche par nom, ou message si c'était un code.
+    const trouves = /[a-zA-Zà-ü]/.test(saisi) ? await rechercherLocal(saisi) : [];
+    if (trouves.length === 1) return ajouterProduit(trouves[0]!);
+    if (trouves.length > 1) {
+      setCode(saisi);
+      setResultats(trouves);
+      return;
     }
+    setMessage(`Article introuvable : ${saisi}`);
   };
 
   const touche = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') void valider();
+    if (e.key === 'Enter') {
+      // Le champ est vidé tout de suite : la douchette peut déjà envoyer le code suivant
+      // pendant la recherche de celui-ci.
+      const saisi = e.currentTarget.value.trim();
+      e.currentTarget.value = '';
+      setCode('');
+      setResultats([]);
+      if (saisi) void valider(saisi);
+    }
     if (e.key === 'F2' && t) setPaiement(true);
   };
 
@@ -174,7 +194,7 @@ export function EcranVente({
     await db.ventes.add(locale);
     setDernier(locale);
     setPaiement(false);
-    setPanier(panierVide());
+    majPanier(() => panierVide());
     imprimer();
     void envoyerEnAttente().catch(() => undefined);
   };
@@ -213,7 +233,7 @@ export function EcranVente({
                   <button
                     type="button"
                     className="flex w-full justify-between px-3 py-2 text-left hover:bg-green-50"
-                    onClick={() => ajouterProduit(p)}
+                    onClick={() => choisir(p)}
                   >
                     <span>{p.nom}</span>
                     <span className="text-gray-600">
@@ -284,7 +304,7 @@ export function EcranVente({
                               className="px-3"
                               aria-label="Ajouter une unité"
                               onClick={() =>
-                                setPanier(changerQuantite(panier, l.cle, l.quantite + 1))
+                                majPanier((p) => changerQuantite(p, l.cle, l.quantite + 1))
                               }
                             >
                               +
@@ -402,10 +422,10 @@ export function EcranVente({
           onFermer={() => setSaisie(null)}
           onValeur={(v) => {
             setSaisie(null);
-            if (saisie.type === 'poids') setPanier(ajouter(panier, saisie.produit, v));
+            if (saisie.type === 'poids') majPanier((p) => ajouter(p, saisie.produit, v));
             else if (saisie.type === 'quantite') {
               const l = saisie.ligne;
-              if (v > l.quantite) setPanier(changerQuantite(panier, l.cle, v));
+              if (v > l.quantite) majPanier((p) => changerQuantite(p, l.cle, v));
               else if (v < l.quantite)
                 demanderGerant({
                   titre: 'Diminuer la quantité',
@@ -468,10 +488,10 @@ export function EcranVente({
                   },
                 },
               });
-              setPanier(panierVide());
+              majPanier(() => panierVide());
             } else {
-              setPanier(
-                approuver(demande.appliquer(panier), demande.action, gerant.id, demande.details),
+              majPanier((p) =>
+                approuver(demande.appliquer(p), demande.action, gerant.id, demande.details),
               );
             }
             setDemande(null);
