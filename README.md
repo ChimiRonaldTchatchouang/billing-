@@ -9,9 +9,26 @@ Caisse multi-magasins utilisable sans connexion, back-office et facturation. Pro
 | `packages/shared` | Calculs (totaux, TVA, remises, rendu monnaie), schémas Zod          |
 | `docs`            | Cahier des charges, décisions, déploiement                          |
 
-## Démarrer en local
+## Ce que fait l'application
 
-Prérequis : Node 22, pnpm 10, PostgreSQL 16.
+- **Caisse (PWA, `/caisse`)** : enregistrement du poste par code, connexion par PIN (même sans réseau),
+  scan à la douchette, articles au poids, remises / prix / retraits validés par PIN gérant, espèces et
+  Mobile Money (saisie manuelle), ticket 80 mm, vente hors ligne avec envoi automatique, retours sur
+  ticket, clôture avec écart de caisse, factures pour les clients professionnels.
+- **Back-office (`/admin`)** : tableau de bord, ventes, rapprochement Mobile Money, sessions de caisse,
+  rapports et export Excel, articles et import, stock (réceptions, inventaire), caisses, magasins,
+  utilisateurs, entreprise (NIU, RCCM).
+- **API (`/api/v1`)** : toute la logique métier, documentation OpenAPI sur `/api/docs`.
+
+## Démonstration en une commande
+
+Prérequis : Node 22, pnpm 10, PostgreSQL 16 local.
+
+```bash
+./scripts/demo.sh
+```
+
+## Démarrer en local (développement)
 
 ```bash
 pnpm install
