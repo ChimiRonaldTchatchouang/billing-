@@ -7,5 +7,6 @@ import { VentesSyncService } from './ventes-sync.service.js';
   imports: [CatalogueModule],
   controllers: [SyncController],
   providers: [VentesSyncService],
+  exports: [VentesSyncService],
 })
 export class SyncModule {}
