@@ -6,3 +6,4 @@ export * from './ticket.js';
 export * from './schemas.js';
 export * from './pin.js';
 export * from './schemas-acces.js';
+export * from './schemas-catalogue.js';

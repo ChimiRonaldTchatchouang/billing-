@@ -45,3 +45,23 @@ export interface Utilisateur {
   aUnPin: boolean;
   bloqueJusqua: string | null;
 }
+
+export interface Article {
+  id: string;
+  codeBarres: string;
+  nom: string;
+  unite: 'PIECE' | 'KG';
+  tauxTvaBp: number;
+  prixTtc: number;
+  dernierPrixAchat: number | null;
+  seuilAlerte: number;
+  categorieId: string | null;
+  categorie: string | null;
+  actif: boolean;
+  majLe: string;
+}
+
+export interface Categorie {
+  id: string;
+  nom: string;
+}

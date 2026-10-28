@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { Chargement } from '../ui';
+import { Articles } from './Articles';
 import { Caisses } from './Caisses';
 import { Connexion } from './Connexion';
 import { Layout } from './Layout';
@@ -23,6 +24,7 @@ export function Admin() {
           <Route path="magasins" element={<Magasins />} />
           <Route path="caisses" element={<Caisses />} />
           <Route path="utilisateurs" element={<Utilisateurs />} />
+          <Route path="articles" element={<Articles />} />
           <Route path="*" element={<p>Page introuvable.</p>} />
         </Route>
       </Routes>

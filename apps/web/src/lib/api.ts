@@ -6,7 +6,7 @@ export class ErreurApi extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
-    readonly details: { champ?: string; message?: string }[] = [],
+    readonly details: { champ?: string; ligne?: number; message?: string }[] = [],
   ) {
     super(message);
     this.name = 'ErreurApi';
