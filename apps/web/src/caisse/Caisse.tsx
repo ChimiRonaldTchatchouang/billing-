@@ -4,6 +4,7 @@ import { Voyant } from '../components/Voyant';
 import { definirJetonAppareil } from '../lib/api';
 import { useConnexion } from '../lib/use-connexion';
 import { Bouton } from '../ui';
+import { Cloture } from './Cloture';
 import { ConnexionPin } from './ConnexionPin';
 import { db, type Employe, effacerPoste, type InfosPoste } from './db';
 import { EcranVente } from './EcranVente';
@@ -11,12 +12,14 @@ import { Enregistrement } from './Enregistrement';
 import { Historique } from './Historique';
 import { OuvertureSession } from './OuvertureSession';
 import { posteEnregistre } from './poste';
+import { Retour } from './Retour';
 import { useSynchronisation } from './synchronisation';
 
 export function Caisse() {
   const [enregistre, setEnregistre] = useState(posteEnregistre());
   const [employe, setEmploye] = useState<Employe | null>(null);
   const [historique, setHistorique] = useState(false);
+  const [modale, setModale] = useState<'retour' | 'cloture' | null>(null);
   const poste = useLiveQuery(
     async () => (await db.meta.get('poste'))?.valeur as InfosPoste | undefined,
     [enregistre],
@@ -66,6 +69,20 @@ export function Caisse() {
               <Bouton variante="secondaire" onClick={() => setHistorique(true)}>
                 Tickets
               </Bouton>
+              {session && (
+                <>
+                  <Bouton
+                    variante="secondaire"
+                    disabled={etat === 'HORS_LIGNE_LONG'}
+                    onClick={() => setModale('retour')}
+                  >
+                    Retour
+                  </Bouton>
+                  <Bouton variante="secondaire" onClick={() => setModale('cloture')}>
+                    Clôturer
+                  </Bouton>
+                </>
+              )}
               <Bouton variante="secondaire" onClick={() => setEmploye(null)}>
                 Changer d’utilisateur
               </Bouton>
@@ -92,6 +109,20 @@ export function Caisse() {
         <EcranVente key={employe.id} employe={employe} session={session} poste={poste} />
       )}
       {historique && poste && <Historique poste={poste} onFermer={() => setHistorique(false)} />}
+      {modale === 'retour' && session && poste && (
+        <Retour session={session} poste={poste} onFermer={() => setModale(null)} />
+      )}
+      {modale === 'cloture' && session && poste && (
+        <Cloture
+          session={session}
+          poste={poste}
+          onFermer={() => setModale(null)}
+          onFermee={() => {
+            setModale(null);
+            setEmploye(null);
+          }}
+        />
+      )}
     </div>
   );
 }

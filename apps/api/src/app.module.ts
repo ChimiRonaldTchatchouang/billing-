@@ -4,12 +4,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CaisseModule } from './caisse/caisse.module.js';
 import { CatalogueModule } from './catalogue/catalogue.module.js';
 import { ConfigModule } from './config/config.module.js';
 import { HealthModule } from './health/health.module.js';
 import { OrganisationModule } from './organisation/organisation.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SyncModule } from './sync/sync.module.js';
+import { StockModule } from './stock/stock.module.js';
 import { UsersModule } from './users/users.module.js';
 import { VentesModule } from './ventes/ventes.module.js';
 
@@ -25,6 +27,8 @@ import { VentesModule } from './ventes/ventes.module.js';
     UsersModule,
     CatalogueModule,
     VentesModule,
+    StockModule,
+    CaisseModule,
     SyncModule,
   ],
   // Ordre des gardes : limiteur, puis authentification et rôles.

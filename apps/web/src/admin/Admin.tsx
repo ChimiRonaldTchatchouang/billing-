@@ -6,7 +6,10 @@ import { Connexion } from './Connexion';
 import { Layout } from './Layout';
 import { Magasins } from './Magasins';
 import { FournisseurMoi, useNettoyageSession, useSessionActive } from './session';
+import { Sessions } from './Sessions';
+import { Stock } from './Stock';
 import { Utilisateurs } from './Utilisateurs';
+import { Ventes } from './Ventes';
 
 function Accueil() {
   return <p className="text-gray-600">Bienvenue dans le back-office.</p>;
@@ -25,6 +28,9 @@ export function Admin() {
           <Route path="caisses" element={<Caisses />} />
           <Route path="utilisateurs" element={<Utilisateurs />} />
           <Route path="articles" element={<Articles />} />
+          <Route path="stock" element={<Stock />} />
+          <Route path="ventes" element={<Ventes />} />
+          <Route path="sessions" element={<Sessions />} />
           <Route path="*" element={<p>Page introuvable.</p>} />
         </Route>
       </Routes>

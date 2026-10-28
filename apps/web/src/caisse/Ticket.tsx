@@ -1,4 +1,5 @@
 import { formaterTaux } from '@caisse/shared';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { formaterDate, formaterFcfa } from '../lib/api';
 import type { InfosPoste, VenteLocale } from './db';
@@ -15,8 +16,8 @@ export function TicketImpression({ vente, poste }: { vente: VenteLocale; poste: 
   const t = vente.ticket;
   const o = poste.organisation;
   const m = poste.magasin;
-  return createPortal(
-    <div id="impression" className="ticket">
+  return (
+    <Impression>
       <div className="centre">
         <p className="gras">{o.nom}</p>
         <p>{m.nom}</p>
@@ -85,8 +86,22 @@ export function TicketImpression({ vente, poste }: { vente: VenteLocale; poste: 
       ))}
       <hr />
       <p className="centre">Merci de votre visite</p>
-    </div>,
-    document.body,
+    </Impression>
+  );
+}
+
+/** Zone imprimée (80 mm), rendue hors de l'écran. */
+export function Impression({ children }: { children: ReactNode }) {
+  return createPortal(<div id="impression">{children}</div>, document.body);
+}
+
+export function EnTeteImpression({ poste }: { poste: InfosPoste }) {
+  return (
+    <div className="centre">
+      <p className="gras">{poste.organisation.nom}</p>
+      <p>{poste.magasin.nom}</p>
+      {poste.organisation.niu && <p>NIU : {poste.organisation.niu}</p>}
+    </div>
   );
 }
 

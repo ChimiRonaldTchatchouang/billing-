@@ -95,3 +95,54 @@ test('hors ligne : la vente est gardée puis envoyée au retour du réseau', asy
   await context.setOffline(false);
   await expect(caisse.getByRole('status')).toHaveText('En ligne', { timeout: 30_000 });
 });
+
+test('retour sur ticket puis clôture de caisse avec écart', async ({ page, context }) => {
+  await connexionBackOffice(page, 'gerant@demo.cm', 'gerant-demo-2026');
+  await page.getByRole('link', { name: 'Caisses' }).click();
+  await page.getByRole('button', { name: 'Code d’enregistrement' }).click();
+  const code = (await page.locator('p.font-mono').textContent())!.trim();
+
+  const caisse = await context.newPage();
+  await caisse.goto('/caisse');
+  await caisse.getByLabel('Code d’enregistrement').fill(code);
+  await caisse.getByRole('button', { name: 'Enregistrer le poste' }).click();
+  await caisse.getByRole('button', { name: /Caissière Démo/ }).click();
+  await taperPin(caisse, '1234');
+  await caisse.getByLabel('Fond de caisse (FCFA)').fill('5000');
+  await caisse.getByRole('button', { name: 'Ouvrir la caisse' }).click();
+  await caisse.evaluate(() => (window.print = () => undefined));
+
+  // Vente : 2 sucres à 1 000 FCFA, payés 2 000 en espèces.
+  const scan = caisse.getByLabel('Code-barres ou nom de l’article');
+  await scan.fill('sucre');
+  await caisse.getByRole('button', { name: /Sucre en morceaux/ }).click();
+  await caisse.getByRole('button', { name: 'Ajouter une unité' }).click();
+  await caisse.getByRole('button', { name: 'Encaisser (F2)' }).click();
+  await caisse.getByLabel(/Espèces reçues/).fill('2000');
+  await caisse.getByRole('button', { name: 'Valider et imprimer' }).click();
+  const ticket = (await caisse.locator('aside .font-mono').textContent())!.trim();
+  await expect(caisse.getByRole('status')).toHaveText('En ligne', { timeout: 20_000 });
+
+  // Retour d'un sucre, validé par le PIN du gérant (vérifié par le serveur).
+  await caisse.getByRole('button', { name: 'Retour' }).click();
+  await caisse.getByLabel('Numéro du ticket').fill(ticket);
+  await caisse.getByRole('button', { name: 'Rechercher' }).click();
+  await caisse.getByLabel('Quantité reprise : Sucre en morceaux 1 kg').fill('1');
+  await caisse.getByLabel('Motif du retour').fill('Paquet ouvert');
+  await taperPin(caisse, '9999');
+  await expect(caisse.getByText('À rembourser :')).toContainText('1 000 FCFA');
+  await caisse.getByRole('button', { name: 'Terminer' }).click();
+
+  // Clôture : 5 000 fond + 2 000 − 1 000 = 6 000 attendus ; 5 900 comptés → écart −100.
+  await caisse.getByRole('button', { name: 'Clôturer' }).click();
+  await caisse.getByLabel('Espèces (FCFA)').fill('5900');
+  await taperPin(caisse, '9999');
+  await expect(caisse.getByRole('dialog', { name: 'Caisse clôturée' })).toContainText('-100 FCFA');
+  await caisse.getByRole('button', { name: 'Terminer' }).click();
+  await expect(caisse.getByText('Qui ouvre la caisse ?')).toBeVisible();
+
+  // Le gérant voit la session clôturée et son écart dans le back-office.
+  await page.getByRole('button', { name: 'Fermer' }).click();
+  await page.getByRole('link', { name: 'Sessions de caisse' }).click();
+  await expect(page.getByRole('cell', { name: '-100 FCFA' })).toBeVisible();
+});
