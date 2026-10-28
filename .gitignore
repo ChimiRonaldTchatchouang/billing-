@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+dev-dist/
+
+# Secrets : jamais versionnés (seul .env.example l'est)
+.env
+.env.*
+!.env.example
+
+.DS_Store
+.vercel
+
+test-results/
+playwright-report/
