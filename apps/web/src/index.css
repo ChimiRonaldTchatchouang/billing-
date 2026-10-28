@@ -7,3 +7,41 @@
     margin: 0;
   }
 }
+
+#impression {
+  display: none;
+}
+
+@media print {
+  body > *:not(#impression) {
+    display: none !important;
+  }
+  #impression {
+    display: block;
+    width: 72mm;
+    padding: 2mm 4mm;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.3;
+    color: #000;
+  }
+  #impression .centre {
+    text-align: center;
+  }
+  #impression .gras {
+    font-weight: bold;
+  }
+  #impression .grand {
+    font-size: 14px;
+  }
+  #impression .ligne {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  #impression hr {
+    border: 0;
+    border-top: 1px dashed #000;
+    margin: 4px 0;
+  }
+}

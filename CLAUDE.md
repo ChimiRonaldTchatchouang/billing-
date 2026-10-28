@@ -41,6 +41,7 @@ Décisions : `docs/decisions/NNNN-titre.md`. Déploiement : `docs/DEPLOIEMENT.md
     (PostgreSQL 16 local ; la base `caisse_tests` est recréée à chaque passage, jamais sur Neon)
   - Nouvelle migration : `pnpm exec prisma migrate dev --name description`
 - Web : `cd apps/web && pnpm dev` (http://localhost:5173), `pnpm test`, `pnpm build`
+- Bout en bout : `pnpm --filter @caisse/api build && cd apps/web && pnpm e2e` (PostgreSQL local ; base `caisse_e2e` recréée)
 
 ## Définition de « terminé »
 

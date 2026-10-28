@@ -23,6 +23,7 @@ describe('venteSyncSchema', () => {
     id: '0192f3a0-7c1e-7b2a-9c3d-4e5f6a7b8c9d',
     numeroTicket: 'M01-C02-000001',
     sessionId: '7d444840-9dc0-41a4-8b1c-2b7d4c9e1f00',
+    userId: '7d444840-9dc0-41a4-8b1c-2b7d4c9e1f02',
     creeLe: '2026-10-28T09:15:00+01:00',
     lignes: [
       {

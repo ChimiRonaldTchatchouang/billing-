@@ -281,6 +281,8 @@ model Sale {
   totalVat       Int        @map("total_vat")
   totalTtc       Int        @map("total_ttc")
   discount       Int        @default(0)
+  /// Monnaie rendue sur les espèces.
+  changeGiven    Int        @default(0) @map("change_given")
   status         SaleStatus @default(VALIDEE)
   originalSaleId String?    @map("original_sale_id") @db.Uuid
   createdAt      DateTime   @map("created_at") @db.Timestamptz(3)
@@ -301,17 +303,21 @@ model Sale {
 }
 
 model SaleLine {
-  id             String @id @default(uuid()) @db.Uuid
-  organizationId String @map("organization_id") @db.Uuid
-  saleId         String @map("sale_id") @db.Uuid
-  productId      String @map("product_id") @db.Uuid
-  label          String
-  unitPriceTtc   Int    @map("unit_price_ttc")
-  quantity       Int
-  unit           Unit
-  discount       Int    @default(0)
-  vatRateBp      Int    @map("vat_rate_bp")
-  totalTtc       Int    @map("total_ttc")
+  id              String  @id @default(uuid()) @db.Uuid
+  organizationId  String  @map("organization_id") @db.Uuid
+  saleId          String  @map("sale_id") @db.Uuid
+  productId       String  @map("product_id") @db.Uuid
+  label           String
+  unitPriceTtc    Int     @map("unit_price_ttc")
+  quantity        Int
+  unit            Unit
+  discount        Int     @default(0)
+  vatRateBp       Int     @map("vat_rate_bp")
+  totalTtc        Int     @map("total_ttc")
+  /// Prix du catalogue au moment de la réception, quand il diffère du prix encaissé.
+  catalogPriceTtc Int?    @map("catalog_price_ttc")
+  /// Ligne d'origine pour une ligne de retour.
+  originalLineId  String? @map("original_line_id") @db.Uuid
 
   sale    Sale    @relation(fields: [saleId], references: [id])
   product Product @relation(fields: [productId], references: [id])
@@ -389,6 +395,8 @@ model AuditLog {
   entityId       String?  @map("entity_id")
   before         Json?
   after          Json?
+  /// Identifiant fourni par la caisse : un événement renvoyé n'est inscrit qu'une fois.
+  clientEventId  String?  @unique @map("client_event_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user     User?     @relation(fields: [userId], references: [id])
