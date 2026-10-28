@@ -138,8 +138,18 @@ function demarrerBase(
     'pg_ctl.exe',
   );
   const ctl = (args: string[]) => {
-    const r = spawnSync(pgCtl, args, { encoding: 'utf8', windowsHide: true, timeout: 90_000 });
-    journal(`pg_ctl ${args[0]} : ${(r.stdout ?? '').trim()} ${(r.stderr ?? '').trim()}`);
+    // Pour « start », PostgreSQL hérite des sorties de pg_ctl et les garde ouvertes : sans
+    // « ignore », spawnSync attendrait leur fermeture jusqu'au délai maximal.
+    const sorties = args[0] === 'start' ? 'ignore' : 'pipe';
+    const r = spawnSync(pgCtl, args, {
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: 90_000,
+      stdio: ['ignore', sorties, sorties],
+    });
+    journal(
+      `pg_ctl ${args[0]} : code ${r.status} ${(r.stdout ?? '').trim()} ${(r.stderr ?? '').trim()}`,
+    );
     return r.status ?? 1;
   };
   return {
@@ -169,6 +179,24 @@ function demarrerBase(
   };
 }
 
+/** Crée la base « caisse » (sans passer par embedded-postgres, qui exige d'avoir lancé le serveur). */
+async function creerBase(motDePasse: string): Promise<void> {
+  const client = new pg.Client({
+    host: '127.0.0.1',
+    port: PORT_BASE,
+    user: 'caisse',
+    password: motDePasse,
+    database: 'postgres',
+  });
+  await client.connect();
+  try {
+    const existe = await client.query("SELECT 1 FROM pg_database WHERE datname = 'caisse'");
+    if (existe.rowCount === 0) await client.query('CREATE DATABASE caisse');
+  } finally {
+    await client.end();
+  }
+}
+
 export async function demarrer(
   chemins: Chemins,
   journal: Journal = () => undefined,
@@ -195,7 +223,8 @@ export async function demarrer(
   }
   const pg = demarrerBase(base, chemins.application, dossierBase, journal);
   await pg.demarrer();
-  if (premiereFois) await base.createDatabase('caisse');
+  // Toujours vérifiée : un premier lancement interrompu a pu laisser le serveur sans base.
+  await creerBase(config.motDePasseBase);
 
   const urlBase = `postgresql://caisse:${encodeURIComponent(config.motDePasseBase)}@127.0.0.1:${PORT_BASE}/caisse`;
   await migrer(urlBase, join(chemins.application, 'api', 'prisma', 'migrations'), journal);
