@@ -3,7 +3,7 @@
  * au premier lancement, puis l'API (qui sert aussi l'application web). Utilisé par la version
  * de bureau et testable seul avec Node.
  */
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -115,6 +115,60 @@ async function attendreSante(url: string, api: ChildProcess, delaiMs = 60_000): 
   throw new Error('L’API ne répond pas.');
 }
 
+/**
+ * Sous Windows, postgres.exe refuse de tourner avec des droits d'administrateur : pg_ctl le
+ * lance avec un jeton restreint. Ailleurs, embedded-postgres démarre le serveur directement.
+ */
+function demarrerBase(
+  base: EmbeddedPostgres,
+  application: string,
+  donnees: string,
+  journal: Journal,
+) {
+  if (process.platform !== 'win32') {
+    return { demarrer: () => base.start(), arreter: () => base.stop() };
+  }
+  const pgCtl = join(
+    application,
+    'node_modules',
+    '@embedded-postgres',
+    'windows-x64',
+    'native',
+    'bin',
+    'pg_ctl.exe',
+  );
+  const ctl = (args: string[]) => {
+    const r = spawnSync(pgCtl, args, { encoding: 'utf8', windowsHide: true, timeout: 90_000 });
+    journal(`pg_ctl ${args[0]} : ${(r.stdout ?? '').trim()} ${(r.stderr ?? '').trim()}`);
+    return r.status ?? 1;
+  };
+  return {
+    demarrer: async () => {
+      // Un serveur resté actif après un arrêt brutal de l'application est réutilisé.
+      if (ctl(['status', '-D', donnees]) === 0) return;
+      const code = ctl([
+        'start',
+        '-w',
+        '-t',
+        '60',
+        '-D',
+        donnees,
+        '-l',
+        join(donnees, 'postgresql.log'),
+        '-o',
+        `-p ${PORT_BASE} -c listen_addresses=127.0.0.1`,
+      ]);
+      if (code !== 0)
+        throw new Error(
+          `La base de données n’a pas pu démarrer (voir ${join(donnees, 'postgresql.log')}).`,
+        );
+    },
+    arreter: async () => {
+      ctl(['stop', '-w', '-m', 'fast', '-D', donnees]);
+    },
+  };
+}
+
 export async function demarrer(
   chemins: Chemins,
   journal: Journal = () => undefined,
@@ -139,7 +193,8 @@ export async function demarrer(
     journal('Création de la base de données…');
     await base.initialise();
   }
-  await base.start();
+  const pg = demarrerBase(base, chemins.application, dossierBase, journal);
+  await pg.demarrer();
   if (premiereFois) await base.createDatabase('caisse');
 
   const urlBase = `postgresql://caisse:${encodeURIComponent(config.motDePasseBase)}@127.0.0.1:${PORT_BASE}/caisse`;
@@ -188,7 +243,7 @@ export async function demarrer(
     await attendreSante(url, api);
   } catch (e) {
     api.kill();
-    await base.stop();
+    await pg.arreter();
     throw e;
   }
 
@@ -197,7 +252,7 @@ export async function demarrer(
     arreter: async () => {
       api.kill();
       await new Promise((r) => setTimeout(r, 300));
-      await base.stop();
+      await pg.arreter();
     },
   };
 }
