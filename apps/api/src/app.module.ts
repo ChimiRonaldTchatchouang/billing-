@@ -11,6 +11,7 @@ import { OrganisationModule } from './organisation/organisation.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SyncModule } from './sync/sync.module.js';
 import { UsersModule } from './users/users.module.js';
+import { VentesModule } from './ventes/ventes.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UsersModule } from './users/users.module.js';
     OrganisationModule,
     UsersModule,
     CatalogueModule,
+    VentesModule,
     SyncModule,
   ],
   // Ordre des gardes : limiteur, puis authentification et rôles.

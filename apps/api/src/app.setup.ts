@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
@@ -6,6 +7,8 @@ import type { Env } from './config/env.js';
 
 /** Configuration commune à l'application et aux tests : préfixe, sécurité, erreurs, OpenAPI. */
 export function setupApp(app: INestApplication, env: Pick<Env, 'CORS_ORIGINS'>): void {
+  // Un lot de ventes de caisse peut dépasser la limite par défaut de 100 ko.
+  (app as NestExpressApplication).useBodyParser('json', { limit: '5mb' });
   app.setGlobalPrefix('api/v1', { exclude: ['health'] });
   app.use(helmet());
   app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });

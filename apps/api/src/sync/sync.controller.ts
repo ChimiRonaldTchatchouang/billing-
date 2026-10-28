@@ -1,11 +1,13 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { lotVentesSchema } from '@caisse/shared';
 import { z } from 'zod';
 import type { Acteur } from '../auth/acteur.js';
 import { ActeurCourant, Autoriser } from '../auth/decorators.js';
 import { CatalogueService } from '../catalogue/catalogue.service.js';
-import { ApiZodQuery, ZodPipe } from '../common/zod.js';
+import { ApiZodBody, ApiZodQuery, ZodPipe } from '../common/zod.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { VentesSyncService } from './ventes-sync.service.js';
 
 const catalogueQuery = z.object({
   since: z.iso.datetime({ offset: true }).optional(),
@@ -21,7 +23,23 @@ export class SyncController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly catalogue: CatalogueService,
+    private readonly ventes: VentesSyncService,
   ) {}
+
+  @Post('sales')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Envoyer un lot de sessions, ventes et événements (idempotent)',
+    description:
+      'Chaque élément reçoit un statut : ENREGISTREE, DEJA_RECUE (renvoi ignoré) ou REJETEE (avec message). Les éléments rejetés n’empêchent pas d’enregistrer les autres.',
+  })
+  @ApiZodBody(lotVentesSchema)
+  envoyerVentes(
+    @ActeurCourant() caisse: Acteur,
+    @Body(new ZodPipe(lotVentesSchema)) lot: z.output<typeof lotVentesSchema>,
+  ) {
+    return this.ventes.recevoir(caisse, lot);
+  }
 
   /**
    * Articles modifiés depuis `since` (inclus les désactivés, à retirer de la copie locale).

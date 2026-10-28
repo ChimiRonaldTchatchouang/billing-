@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { VenteSync } from '@caisse/shared';
+import type { EvenementSync, VenteSync } from '@caisse/shared';
 
 export interface InfosPoste {
   caisse: { id: string; code: string };
@@ -79,7 +79,15 @@ export interface SessionLocale {
   ouvertePar: string;
   fondDeCaisse: number;
   statut: 'OUVERTE' | 'FERMEE';
-  envoyee: boolean;
+  /** 1 quand le serveur a confirmé la réception de l'ouverture. */
+  envoyee: 0 | 1;
+}
+
+/** Action sensible sans vente (ex. ticket annulé), envoyée au journal d'audit. */
+export interface EvenementLocal {
+  id: string;
+  envoye: 0 | 1;
+  evenement: EvenementSync;
 }
 
 interface Meta {
@@ -93,6 +101,7 @@ export const db = new Dexie('caisse') as Dexie & {
   personnel: EntityTable<Employe, 'id'>;
   ventes: EntityTable<VenteLocale, 'id'>;
   sessions: EntityTable<SessionLocale, 'id'>;
+  evenements: EntityTable<EvenementLocal, 'id'>;
 };
 
 db.version(1).stores({
@@ -100,7 +109,8 @@ db.version(1).stores({
   produits: 'id, &codeBarres, nom, majLe',
   personnel: 'id',
   ventes: 'id, statut, creeLe',
-  sessions: 'id, statut',
+  sessions: 'id, statut, envoyee',
+  evenements: 'id, envoye',
 });
 
 export async function lireMeta<T>(cle: string): Promise<T | undefined> {
