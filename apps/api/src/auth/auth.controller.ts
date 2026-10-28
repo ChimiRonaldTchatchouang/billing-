@@ -1,6 +1,12 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { connexionPinSchema, connexionSchema, renouvellementSchema } from '@caisse/shared';
+import {
+  connexionPinSchema,
+  connexionSchema,
+  motDePasseOublieSchema,
+  reinitialisationSchema,
+  renouvellementSchema,
+} from '@caisse/shared';
 import type { z } from 'zod';
 import { introuvable } from '../common/errors.js';
 import { ApiZodBody, ZodPipe } from '../common/zod.js';
@@ -64,6 +70,30 @@ export class AuthController {
     @Body(new ZodPipe(renouvellementSchema)) body: z.infer<typeof renouvellementSchema>,
   ) {
     await this.auth.deconnexion(body.refreshToken);
+  }
+
+  @Public()
+  @LimiteAuth()
+  @Post('forgot')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Recevoir par e-mail un lien de réinitialisation du mot de passe' })
+  @ApiZodBody(motDePasseOublieSchema)
+  async oublie(
+    @Body(new ZodPipe(motDePasseOublieSchema)) body: z.infer<typeof motDePasseOublieSchema>,
+  ) {
+    await this.auth.motDePasseOublie(body.email);
+  }
+
+  @Public()
+  @LimiteAuth()
+  @Post('reset')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Choisir un nouveau mot de passe avec le lien reçu' })
+  @ApiZodBody(reinitialisationSchema)
+  async reinitialiser(
+    @Body(new ZodPipe(reinitialisationSchema)) body: z.infer<typeof reinitialisationSchema>,
+  ) {
+    await this.auth.reinitialiser(body.jeton, body.motDePasse);
   }
 
   @Get('me')

@@ -4,6 +4,7 @@ import type {
   creationCaisseSchema,
   creationMagasinSchema,
   modificationMagasinSchema,
+  organisationSchema,
 } from '@caisse/shared';
 import { AuditService } from '../audit/audit.service.js';
 import { type Acteur, magasinAutorise } from '../auth/acteur.js';
@@ -35,6 +36,38 @@ export class OrganisationService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  async organisation(acteur: Acteur) {
+    const o = await this.prisma.organization.findUniqueOrThrow({
+      where: { id: acteur.organizationId },
+    });
+    return {
+      id: o.id,
+      nom: o.name,
+      niu: o.niu,
+      rccm: o.rccm,
+      adresse: o.address,
+      telephone: o.phone,
+    };
+  }
+
+  /** Raison sociale, NIU et RCCM : mentions obligatoires des factures et tickets. */
+  async modifierOrganisation(acteur: Acteur, d: z.infer<typeof organisationSchema>) {
+    const avant = await this.organisation(acteur);
+    await this.prisma.organization.update({
+      where: { id: acteur.organizationId },
+      data: { name: d.nom, niu: d.niu, rccm: d.rccm, address: d.adresse, phone: d.telephone },
+    });
+    const apres = await this.organisation(acteur);
+    await this.audit.log(acteur, {
+      action: 'ORGANISATION_MODIFIEE',
+      entite: 'organization',
+      entiteId: acteur.organizationId,
+      avant,
+      apres,
+    });
+    return apres;
+  }
 
   async magasins(acteur: Acteur) {
     const storeId = magasinAutorise(acteur);

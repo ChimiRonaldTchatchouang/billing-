@@ -64,6 +64,13 @@ Ajouter `SEED_DEMO=1` en recette pour un magasin, une caisse, un gérant (PIN 99
 3. Production Branch : `main`. La branche `develop` sert d'adresse de recette.
 4. Passer en Vercel Pro avant le pilote (usage commercial).
 
+## Resend
+
+1. Créer un compte Resend, ajouter le domaine d'envoi (ex. `caisse.<domaine>`) et publier chez
+   l'hébergeur DNS les enregistrements SPF et DKIM indiqués par Resend.
+2. Créer une clé d'API « envoi seulement » et la saisir dans `RESEND_API_KEY` sur Render.
+3. `MAIL_FROM` : par exemple `Supermarché X <factures@caisse.<domaine>>`.
+
 ## Sauvegarde et restauration
 
 `backup.yml` exporte la base de production chaque nuit, chiffrée, vers le stockage externe.

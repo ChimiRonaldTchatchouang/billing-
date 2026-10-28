@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Bouton, Champ, MessageErreur } from '../ui';
 import { seConnecter } from './session';
 
@@ -45,6 +46,12 @@ export function Connexion() {
         <Bouton type="submit" className="w-full" disabled={envoi}>
           {envoi ? 'Connexion…' : 'Se connecter'}
         </Bouton>
+        <Link
+          to="/admin/mot-de-passe-oublie"
+          className="block text-center text-sm text-green-800 hover:underline"
+        >
+          Mot de passe oublié ?
+        </Link>
       </form>
     </div>
   );

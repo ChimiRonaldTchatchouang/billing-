@@ -10,3 +10,4 @@ export * from './schemas-catalogue.js';
 export * from './retour.js';
 export * from './uuid.js';
 export * from './schemas-stock.js';
+export * from './schemas-factures.js';
