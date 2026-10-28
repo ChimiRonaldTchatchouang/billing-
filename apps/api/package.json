@@ -11,14 +11,18 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev"
+    "db:migrate:dev": "prisma migrate dev",
+    "db:seed": "node --env-file-if-exists=.env dist/seed.js"
   },
   "dependencies": {
     "@caisse/shared": "workspace:*",
     "@nestjs/common": "^11.2.8",
     "@nestjs/core": "^11.2.8",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.2.8",
     "@nestjs/swagger": "^11.4.7",
+    "@nestjs/throttler": "^6.7.1",
+    "@node-rs/argon2": "^2.2.2",
     "@prisma/client": "~6.19.3",
     "helmet": "^8.3.0",
     "reflect-metadata": "^0.2.2",
