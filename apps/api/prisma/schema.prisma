@@ -1,0 +1,393 @@
+// Schéma de la base. Montants en entiers FCFA, taux de TVA en points de base (1925 = 19,25 %).
+// Chaque table porte organization_id. Le stock ne change que par stock_movements.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  DIRECTEUR
+  GERANT
+  CAISSIER
+}
+
+enum Unit {
+  PIECE
+  KG
+}
+
+enum StockMovementType {
+  VENTE
+  RECEPTION
+  AJUSTEMENT
+  RETOUR
+}
+
+enum SaleStatus {
+  VALIDEE
+  ANNULEE
+  RETOUR
+}
+
+enum PaymentMode {
+  ESPECES
+  ORANGE_MONEY
+  MTN_MOMO
+}
+
+enum PaymentStatus {
+  VALIDE
+  A_RAPPROCHER
+  RAPPROCHE
+  ECART
+}
+
+enum CashSessionStatus {
+  OUVERTE
+  FERMEE
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  niu       String?
+  rccm      String?
+  address   String?
+  phone     String?
+  logoUrl   String?  @map("logo_url")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  stores     Store[]
+  registers  Register[]
+  users      User[]
+  categories Category[]
+  products   Product[]
+
+  @@map("organizations")
+}
+
+model Store {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  code           String   @db.VarChar(3)
+  name           String
+  address        String?
+  phone          String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  registers      Register[]
+  users          User[]
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+  receipts       Receipt[]
+
+  @@unique([organizationId, code])
+  @@map("stores")
+}
+
+model Register {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  storeId        String    @map("store_id") @db.Uuid
+  code           String    @db.VarChar(3)
+  deviceId       String?   @unique @map("device_id")
+  enrolledAt     DateTime? @map("enrolled_at") @db.Timestamptz(3)
+  lastSyncAt     DateTime? @map("last_sync_at") @db.Timestamptz(3)
+  lastTicketSeq  Int       @default(0) @map("last_ticket_seq")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  store        Store         @relation(fields: [storeId], references: [id])
+  sales        Sale[]
+  cashSessions CashSession[]
+  auditLogs    AuditLog[]
+
+  @@unique([storeId, code])
+  @@map("registers")
+}
+
+model User {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  storeId        String?   @map("store_id") @db.Uuid
+  name           String
+  email          String?
+  passwordHash   String?   @map("password_hash")
+  pinHash        String?   @map("pin_hash")
+  role           Role
+  active         Boolean   @default(true)
+  pinFailures    Int       @default(0) @map("pin_failures")
+  lockedUntil    DateTime? @map("locked_until") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  store          Store?          @relation(fields: [storeId], references: [id])
+  refreshTokens  RefreshToken[]
+  sales          Sale[]
+  stockMovements StockMovement[]
+  receipts       Receipt[]
+  auditLogs      AuditLog[]
+  openedSessions CashSession[]   @relation("SessionOpenedBy")
+  closedSessions CashSession[]   @relation("SessionClosedBy")
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+model RefreshToken {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  name           String
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  products     Product[]
+
+  @@unique([organizationId, name])
+  @@map("categories")
+}
+
+model Product {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  categoryId        String?  @map("category_id") @db.Uuid
+  barcode           String
+  name              String
+  unit              Unit     @default(PIECE)
+  vatRateBp         Int      @map("vat_rate_bp")
+  priceTtc          Int      @map("price_ttc")
+  lastPurchasePrice Int?     @map("last_purchase_price")
+  alertThreshold    Int      @default(0) @map("alert_threshold")
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+  receiptLines   ReceiptLine[]
+  saleLines      SaleLine[]
+
+  @@unique([organizationId, barcode])
+  @@index([organizationId, updatedAt])
+  @@map("products")
+}
+
+model StockLevel {
+  organizationId String   @map("organization_id") @db.Uuid
+  productId      String   @map("product_id") @db.Uuid
+  storeId        String   @map("store_id") @db.Uuid
+  quantity       Int      @default(0)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id])
+  store   Store   @relation(fields: [storeId], references: [id])
+
+  @@id([productId, storeId])
+  @@map("stock_levels")
+}
+
+model StockMovement {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  productId      String            @map("product_id") @db.Uuid
+  storeId        String            @map("store_id") @db.Uuid
+  type           StockMovementType
+  /// Quantité signée : négative pour une sortie. Grammes pour un article au poids.
+  quantity       Int
+  reference      String?
+  userId         String?           @map("user_id") @db.Uuid
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  product Product @relation(fields: [productId], references: [id])
+  store   Store   @relation(fields: [storeId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([storeId, productId, createdAt])
+  @@map("stock_movements")
+}
+
+model Receipt {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  storeId        String   @map("store_id") @db.Uuid
+  supplierName   String   @map("supplier_name")
+  userId         String   @map("user_id") @db.Uuid
+  receivedAt     DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  store Store         @relation(fields: [storeId], references: [id])
+  user  User          @relation(fields: [userId], references: [id])
+  lines ReceiptLine[]
+
+  @@map("receipts")
+}
+
+model ReceiptLine {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  receiptId      String @map("receipt_id") @db.Uuid
+  productId      String @map("product_id") @db.Uuid
+  quantity       Int
+  purchasePrice  Int    @map("purchase_price")
+
+  receipt Receipt @relation(fields: [receiptId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("receipt_lines")
+}
+
+model Sale {
+  /// UUID v7 créé par la caisse : garantit l'idempotence de la synchronisation.
+  id             String     @id @db.Uuid
+  organizationId String     @map("organization_id") @db.Uuid
+  registerId     String     @map("register_id") @db.Uuid
+  userId         String     @map("user_id") @db.Uuid
+  sessionId      String     @map("session_id") @db.Uuid
+  ticketNumber   String     @map("ticket_number")
+  totalHt        Int        @map("total_ht")
+  totalVat       Int        @map("total_vat")
+  totalTtc       Int        @map("total_ttc")
+  discount       Int        @default(0)
+  status         SaleStatus @default(VALIDEE)
+  originalSaleId String?    @map("original_sale_id") @db.Uuid
+  createdAt      DateTime   @map("created_at") @db.Timestamptz(3)
+  syncedAt       DateTime   @default(now()) @map("synced_at") @db.Timestamptz(3)
+
+  register     Register    @relation(fields: [registerId], references: [id])
+  user         User        @relation(fields: [userId], references: [id])
+  session      CashSession @relation(fields: [sessionId], references: [id])
+  originalSale Sale?       @relation("SaleReturn", fields: [originalSaleId], references: [id])
+  returns      Sale[]      @relation("SaleReturn")
+  lines        SaleLine[]
+  payments     Payment[]
+  invoice      Invoice?
+
+  @@unique([organizationId, ticketNumber])
+  @@index([registerId, createdAt])
+  @@map("sales")
+}
+
+model SaleLine {
+  id             String @id @default(uuid()) @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  saleId         String @map("sale_id") @db.Uuid
+  productId      String @map("product_id") @db.Uuid
+  label          String
+  unitPriceTtc   Int    @map("unit_price_ttc")
+  quantity       Int
+  unit           Unit
+  discount       Int    @default(0)
+  vatRateBp      Int    @map("vat_rate_bp")
+  totalTtc       Int    @map("total_ttc")
+
+  sale    Sale    @relation(fields: [saleId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@map("sale_lines")
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  saleId         String        @map("sale_id") @db.Uuid
+  mode           PaymentMode
+  amount         Int
+  customerPhone  String?       @map("customer_phone")
+  externalRef    String?       @map("external_ref")
+  status         PaymentStatus
+  reconciledBy   String?       @map("reconciled_by") @db.Uuid
+  reconciledAt   DateTime?     @map("reconciled_at") @db.Timestamptz(3)
+
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  @@index([organizationId, status])
+  @@map("payments")
+}
+
+model Invoice {
+  id              String    @id @default(uuid()) @db.Uuid
+  organizationId  String    @map("organization_id") @db.Uuid
+  saleId          String    @unique @map("sale_id") @db.Uuid
+  number          String
+  customerName    String    @map("customer_name")
+  customerNiu     String?   @map("customer_niu")
+  customerAddress String?   @map("customer_address")
+  customerEmail   String?   @map("customer_email")
+  sentAt          DateTime? @map("sent_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  sale Sale @relation(fields: [saleId], references: [id])
+
+  @@unique([organizationId, number])
+  @@map("invoices")
+}
+
+model CashSession {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  registerId     String            @map("register_id") @db.Uuid
+  openedById     String            @map("opened_by_id") @db.Uuid
+  openingFloat   Int               @map("opening_float")
+  openedAt       DateTime          @default(now()) @map("opened_at") @db.Timestamptz(3)
+  closedById     String?           @map("closed_by_id") @db.Uuid
+  closedAt       DateTime?         @map("closed_at") @db.Timestamptz(3)
+  /// Montants comptés à la clôture, par mode de paiement (FCFA entiers).
+  countedByMode  Json?             @map("counted_by_mode")
+  variance       Int?
+  status         CashSessionStatus @default(OUVERTE)
+
+  register Register @relation(fields: [registerId], references: [id])
+  openedBy User     @relation("SessionOpenedBy", fields: [openedById], references: [id])
+  closedBy User?    @relation("SessionClosedBy", fields: [closedById], references: [id])
+  sales    Sale[]
+
+  @@index([registerId, status])
+  @@map("cash_sessions")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  userId         String?  @map("user_id") @db.Uuid
+  registerId     String?  @map("register_id") @db.Uuid
+  action         String
+  entity         String
+  entityId       String?  @map("entity_id")
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user     User?     @relation(fields: [userId], references: [id])
+  register Register? @relation(fields: [registerId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}

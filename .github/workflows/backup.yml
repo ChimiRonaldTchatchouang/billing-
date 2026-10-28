@@ -1,0 +1,36 @@
+name: Sauvegarde quotidienne
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # 2 h à Douala (UTC+1)
+  workflow_dispatch:
+
+jobs:
+  sauvegarder:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Installer pg_dump 16 et rclone
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q && sudo apt-get install -yq postgresql-client-16 rclone
+      - name: Exporter, compresser, chiffrer
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          fichier="caisse-$(date -u +%Y-%m-%d).dump.gpg"
+          /usr/lib/postgresql/16/bin/pg_dump --format=custom --no-owner "$DIRECT_URL" \
+            | gpg --batch --symmetric --cipher-algo AES256 --passphrase-env BACKUP_PASSPHRASE -o "$fichier"
+          echo "FICHIER=$fichier" >> "$GITHUB_ENV"
+      - name: Envoyer et purger au-delà de 30 jours
+        env:
+          RCLONE_CONFIG_CONTENT: ${{ secrets.RCLONE_CONFIG }}
+          BACKUP_REMOTE: ${{ vars.BACKUP_REMOTE }}
+        run: |
+          mkdir -p ~/.config/rclone
+          printf '%s' "$RCLONE_CONFIG_CONTENT" > ~/.config/rclone/rclone.conf
+          rclone copy "$FICHIER" "$BACKUP_REMOTE"
+          rclone delete --min-age 30d "$BACKUP_REMOTE"

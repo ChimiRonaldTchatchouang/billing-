@@ -1,0 +1,46 @@
+name: Déploiement API
+
+# Recette : chaque push sur develop. Production : chaque tag v* (posé sur main).
+# Vercel déploie le web de son côté (develop → recette, main → production).
+on:
+  push:
+    branches: [develop]
+    tags: ['v*']
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'recette' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrations Neon
+        run: pnpm --filter @caisse/api exec prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      - name: Déclencher Render
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK" > /dev/null
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+      - name: Vérifier /health
+        env:
+          API_URL: ${{ vars.API_URL }}
+        run: |
+          # Render met quelques minutes à construire et redémarrer le service.
+          sleep 60
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_URL/health"; then exit 0; fi
+            sleep 20
+          done
+          echo "L'API ne répond pas sur $API_URL/health après le déploiement." >&2
+          exit 1
